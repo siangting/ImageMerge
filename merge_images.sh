@@ -24,7 +24,7 @@ echo "Creating merged Dockerfile: $DOCKERFILE_OUTPUT..."
 {
     echo "# Merged Dockerfile"
     echo ""
-    
+
     # 為每個映像創建一個構建階段
     for i in "${!IMAGES[@]}"; do
         echo "# Stage $((i+1))"
@@ -36,11 +36,19 @@ echo "Creating merged Dockerfile: $DOCKERFILE_OUTPUT..."
     echo "# Final Stage"
     echo "FROM ubuntu:20.04 AS final"
     echo "WORKDIR /merged"
-    
-    # 從每個階段複製內容到最終階段
+
+    # 從每個階段複製內容到最終階段，避免複製特定目錄的潛在問題
     for i in "${!IMAGES[@]}"; do
-        echo "COPY --from=stage_$i / /"
+        echo "# Copying specific directories from stage_$i"
+        echo "COPY --from=stage_$i /etc /etc"
+        echo "COPY --from=stage_$i /opt /opt"
+        echo "COPY --from=stage_$i /var /var"
+        echo "COPY --from=stage_$i /home /home"
     done
+
+    # 移除潛在問題的文檔目錄
+    echo "# Clean up unnecessary directories"
+    echo "RUN rm -rf /usr/share/doc /usr/share/man /usr/share/info"
 
     # 添加任何需要的後續操作
     echo "CMD [\"/bin/bash\"]"

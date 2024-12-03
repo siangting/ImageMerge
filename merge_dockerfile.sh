@@ -37,20 +37,35 @@ echo "Merging ${DOCKERFILES[*]} into $OUTPUT_DOCKERFILE..."
     # 添加每個 Dockerfile 作為一個階段
     for i in "${!DOCKERFILES[@]}"; do
         DOCKERFILE=${DOCKERFILES[$i]}
-        echo "# Stage $((i+1)): From $DOCKERFILE"
-        cat "$DOCKERFILE"
+        echo "# Stage $((i+1)) from $DOCKERFILE"
+
+        # 確保第一行的 `FROM` 指令加上正確的 `AS stage_X`
+        awk -v stage="stage_$i" '
+            BEGIN { modified = 0 }
+            /^FROM/ && modified == 0 { print $0 " AS " stage; modified = 1; next }
+            { print $0 }
+        ' "$DOCKERFILE"
+
         echo ""
     done
 
     # 添加最終階段
-    echo "# Final Stage: Combine builds"
-    BASE_IMAGE=$(awk '/^FROM/ {print $2; exit}' "${DOCKERFILES[${#DOCKERFILES[@]}-1]}")
-    echo "FROM $BASE_IMAGE AS final"
+    echo "# Final Stage"
+    echo "FROM ubuntu:20.04 AS final"
+    echo "WORKDIR /merged"
 
-    # 添加 COPY 指令從所有階段複製內容
+    # 添加 COPY 指令從所有階段複製內容（特定目錄）
     for i in "${!DOCKERFILES[@]}"; do
-        echo "COPY --from=$i / /"
+        echo "# Copying specific directories from stage_$i"
+        echo "COPY --from=stage_$i /etc /etc"
+        echo "COPY --from=stage_$i /opt /opt"
+        echo "COPY --from=stage_$i /var /var"
+        echo "COPY --from=stage_$i /home /home"
     done
+
+    # 添加環境設定或其他配置
+    echo "ENV PATH=\$PATH:/opt/bin"
+    echo "CMD [\"/bin/bash\"]"
 } > "$OUTPUT_DOCKERFILE"
 
 echo "Merged Dockerfile with $NUM_DOCKERFILES stages created at $OUTPUT_DOCKERFILE"
