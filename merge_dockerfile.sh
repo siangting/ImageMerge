@@ -57,6 +57,7 @@ echo "Merging ${DOCKERFILES[*]} into $OUTPUT_DOCKERFILE..."
     # 添加 COPY 指令從所有階段複製內容（特定目錄）
     for i in "${!DOCKERFILES[@]}"; do
         echo "# Copying specific directories from stage_$i"
+        echo "COPY --from=stage_$i /root /root"
         echo "COPY --from=stage_$i /etc /etc"
         echo "COPY --from=stage_$i /opt /opt"
         echo "COPY --from=stage_$i /var /var"

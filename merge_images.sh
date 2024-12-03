@@ -40,6 +40,7 @@ echo "Creating merged Dockerfile: $DOCKERFILE_OUTPUT..."
     # 從每個階段複製內容到最終階段，避免複製特定目錄的潛在問題
     for i in "${!IMAGES[@]}"; do
         echo "# Copying specific directories from stage_$i"
+        echo "COPY --from=stage_$i /root /root"
         echo "COPY --from=stage_$i /etc /etc"
         echo "COPY --from=stage_$i /opt /opt"
         echo "COPY --from=stage_$i /var /var"
